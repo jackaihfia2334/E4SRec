@@ -10,7 +10,39 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "justMyCode": false
-        }
+            "justMyCode": false,
+            "args": [
+                "${file}",
+                "--data_path='D:/myf/code/rs_ad/Recsys/E4SRec/datasets/sequential/Beauty/'",
+                "--task_type=sequential",
+                "--checkpoint_dir='D:/myf/code/rs_ad/Recsys/E4SRec/checkpoint/'",
+                "--cache_dir='D:/myf/code/rs_ad/Recsys/E4SRec/cache/'",
+                "--output_dir='D:/myf/code/rs_ad/Recsys/E4SRec/output/'",
+                "--batch_size=4",
+                "--micro_batch_size=1",
+              ]
+        },
+    
+      {
+        "name": "torchrun",
+        "type": "python",
+        "request": "launch",
+        "program": "C:/Users/myf/.conda/envs/dl/Lib/site-packages/torch/distributed/run.py",//可执行文件路径
+        "console": "integratedTerminal",
+        "justMyCode": false,
+        "args": [
+          //"--nnnode=1",
+          "--nproc_per_node=1",
+          "${file}",
+          "--data_path='D:/myf/code/rs_ad/Recsys/E4SRec/datasets/sequential/Beauty'",
+          "--task_type=sequential",
+          "--checkpoint_dir='D:/myf/code/rs_ad/Recsys/E4SRec/checkpoint/'",
+          "--cache_dir='D:/myf/code/rs_ad/Recsys/E4SRec/cache/'",
+          "--output_dir='D:/myf/code/rs_ad/Recsys/E4SRec/output/'",
+          "--batch_size=4",
+          "--micro_batch_size=1",
+        ]
+      }
     ]
-}
+  }
+
