@@ -22,6 +22,27 @@
                 "--micro_batch_size=1",
               ]
         },
+
+        {
+          "name": "test",
+          "type": "python",
+          "request": "launch",
+          "program": "${file}",
+          "console": "integratedTerminal",
+          "justMyCode": false,
+          "args": [
+            "${file}",
+            "--base_model='D:/data/llm/model/huggyllama'",
+            "--data_path='D:/myf/code/rs_ad/Recsys/E4SRec/datasets/sequential/Beauty/'",
+            "--task_type=sequential",
+            "--checkpoint_dir='D:/myf/code/rs_ad/Recsys/E4SRec/checkpoint/'",
+            "--cache_dir='D:/myf/code/rs_ad/Recsys/E4SRec/cache/'",
+            "--output_dir='D:/myf/code/rs_ad/Recsys/E4SRec/output/'",
+            "--batch_size=4",
+            "--micro_batch_size=1",
+          ]
+      },
+      
     
       {
         "name": "torchrun",

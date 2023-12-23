@@ -3,28 +3,17 @@ import sys
 from typing import List
 
 import fire
+import torch
 import pickle
 import numpy as np
-
+import transformers
+from transformers import LlamaForCausalLM, LlamaTokenizer
 from utils.prompter import Prompter
+from model import LLM4Rec
 from utils.data_utils import BipartiteGraphDataset, BipartiteGraphCollator, SequentialDataset, SequentialCollator
 from utils.eval_utils import RecallPrecision_atK, MRR_atK, MAP_atK, NDCG_atK, AUC, getLabel
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import transformers
-from transformers import LlamaModel, LlamaTokenizer,LlamaConfig
-from transformers.modeling_outputs import SequenceClassifierOutputWithPast
-
-from peft import (
-    LoraConfig,
-    get_peft_model,
-    prepare_model_for_int8_training,
-    set_peft_model_state_dict
-)
-
-
+"""
 class LLM4Rec(nn.Module):
     def __init__(self, **args):
         super(LLM4Rec, self).__init__()
@@ -65,11 +54,11 @@ class LLM4Rec(nn.Module):
 
         self.task_type = args['task_type']
         if self.task_type == 'general':
-            self.user_embeds = nn.Embedding.from_pretrained(self.args['user_embeds'], freeze=True).cuda()
-            self.user_proj = nn.Linear(self.input_dim, self.llama_model.config.hidden_size).cuda()
-        self.input_embeds = nn.Embedding.from_pretrained(self.args['input_embeds'], freeze=True).cuda()
-        self.input_proj = nn.Linear(self.input_dim, self.llama_model.config.hidden_size).cuda()
-        self.score = nn.Linear(self.llama_model.config.hidden_size, self.output_dim, bias=False).cuda()
+            self.user_embeds = nn.Embedding.from_pretrained(self.args['user_embeds'], freeze=True)#.cuda()
+            self.user_proj = nn.Linear(self.input_dim, self.llama_model.config.hidden_size)#.cuda()
+        self.input_embeds = nn.Embedding.from_pretrained(self.args['input_embeds'], freeze=True)#.cuda()
+        self.input_proj = nn.Linear(self.input_dim, self.llama_model.config.hidden_size)#.cuda()
+        self.score = nn.Linear(self.llama_model.config.hidden_size, self.output_dim, bias=False)#.cuda()
 
     def predict(self, inputs, inputs_mask):
         bs = inputs.shape[0]
@@ -110,10 +99,11 @@ class LLM4Rec(nn.Module):
             attentions=outputs.attentions,
         )
 
+"""
 
 def train(
     # model/data params
-    #base_model: str = "",
+    base_model: str = "",
     data_path: str = "",
     cache_dir: str = "",
     checkpoint_dir: str = "",
@@ -174,21 +164,19 @@ def train(
             f"wandb_run_name: {wandb_run_name}\n"
             f"wandb_watch: {wandb_watch}\n"
             f"wandb_log_model: {wandb_log_model}\n"
-            f"resume_from_checkpoint: {resume_from_checkpoint or False}\n"  
+            f"resume_from_checkpoint: {resume_from_checkpoint or False}\n"
         )
     
-    """
+    
     assert (
         base_model
     ), "Please specify a --base_model, e.g. --base_model='huggyllama/llama-7b'"
-    """
     gradient_accumulation_steps = batch_size // micro_batch_size
 
     prompter = Prompter(prompt_template_name)
 
     device_map = "auto"
     world_size = int(os.environ.get("WORLD_SIZE", 1))
-
     ddp = world_size != 1
     if ddp:
         device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)}
@@ -243,6 +231,40 @@ def train(
         # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available
         model.is_parallelizable = True
         model.model_parallel = True
+    
+    
+    trainer = transformers.Trainer(
+        model=model,
+        train_dataset=dataset,
+        eval_dataset=None,
+        args=transformers.TrainingArguments(
+            per_device_train_batch_size=micro_batch_size,
+            gradient_accumulation_steps=gradient_accumulation_steps,
+            warmup_steps=warmup_steps,
+            num_train_epochs=num_epochs,
+            learning_rate=learning_rate,
+            dataloader_num_workers=8,
+            fp16=True,
+            logging_steps=1,
+            optim="adamw_torch",
+            evaluation_strategy="steps" if val_set_size > 0 else "no",
+            save_strategy="steps",
+            eval_steps=200 if val_set_size > 0 else None,
+            save_steps=1000,
+            lr_scheduler_type=lr_scheduler,
+            output_dir=output_dir,
+            save_total_limit=2,
+            load_best_model_at_end=True if val_set_size > 0 else False,
+            ddp_find_unused_parameters=False if ddp else None,
+            group_by_length=group_by_length,
+            report_to="none",
+            run_name=None,
+        ),
+        data_collator=data_collator,
+    )
+    
+    #"""
+    
 
     # if torch.__version__ >= "2" and sys.platform != "win32":
     #     model = torch.compile(model)
