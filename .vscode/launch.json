@@ -63,7 +63,43 @@
           "--batch_size=4",
           "--micro_batch_size=1",
         ]
-      }
-    ]
-  }
-
+      },
+      {
+      "name": "finetune",
+      "type": "python",
+      "request": "launch",
+      "program": "/home/yufan/anaconda3/bin/torchrun",//可执行文件路径
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        //"--nnnode=1",
+        "--nproc_per_node=4",
+        "--master_port=1234",
+        "${file}",
+        "--base_model='/data2/yufan/data/llm/model/huggyllama'",
+        "--data_path='/data2/yufan/rec/E4SRec/datasets/sequential/Beauty/'",
+        "--task_type=sequential",
+        "--checkpoint_dir='/data2/yufan/rec/E4SRec/checkpoint/'",
+        "--cache_dir='/data2/yufan/rec/E4SRec/cache/'",
+        "--output_dir='/data2/yufan/rec/E4SRec/output/'",
+        "--batch_size=4",
+        "--micro_batch_size=1",
+        "--num_epochs=3 ",
+        "--learning_rate 0.0003",
+        "--cutoff_len=4096",
+        "--val_set_size=0",
+        "--lora_r=16",
+        "--lora_alpha=16",
+        "--lora_dropout=0.05",
+        "--lora_target_modules='[gate_proj, down_proj, up_proj]'",
+        "--train_on_inputs=False",
+        "--add_eos_token=False",
+        "--group_by_length=False",
+        "--prompt_template_name=alpaca",
+        "--lr_scheduler='cosine'",
+        "--warmup_steps=100"
+      ],
+      "env": {"CUDA_VISIBLE_DEVICES":"0,1,2,3"}
+    }
+  ]
+}

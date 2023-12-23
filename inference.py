@@ -117,8 +117,8 @@ def train(
         user_embed, item_embed = None, pickle.load(open(data_path + 'SASRec_item_embed.pkl', 'rb')).cuda()
         data_collator = SequentialCollator()
     
-    state_dict = torch.load(checkpoint_dir + 'pytorch_model.bin', map_location='cpu')
-    state_dict = {k: v.cuda() for k, v in state_dict.items() if 'lora' in k or 'user_proj' in k or 'input_proj' in k or 'score' in k}
+    #state_dict = torch.load(checkpoint_dir + 'pytorch_model.bin', map_location='cpu')
+    #state_dict = {k: v.cuda() for k, v in state_dict.items() if 'lora' in k or 'user_proj' in k or 'input_proj' in k or 'score' in k}
 
     model = LLM4Rec(
         base_model=base_model,
@@ -135,8 +135,8 @@ def train(
         user_embeds=user_embed,
         input_embeds=item_embed,
     )
-    model.load_state_dict(state_dict, strict=False)
-    del state_dict
+    #model.load_state_dict(state_dict, strict=False)
+    #del state_dict
 
     if not ddp and torch.cuda.device_count() > 1:
         # keeps Trainer from trying its own DataParallelism when more than 1 gpu is available

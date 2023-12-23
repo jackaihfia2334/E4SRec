@@ -32,10 +32,10 @@ class LLM4Rec(nn.Module):
         )
 
         llamaconfig = LlamaConfig(vocab_size=32000, hidden_size=4096//4, intermediate_size=11008//4, num_hidden_Layers=32//4, num_attention_heads=32//4, max_position_embeddings=2048//4)
-        self.llama_model = LlamaModel._from_config(llamaconfig, torch_dtype=torch.float16,)#.to(device)
-        #self.llama_model = LlamaModel.from_pretrained(self.args['base_model'], load_in_8bit=True, torch_dtype=torch.float16,
-        #                                              local_files_only=True, cache_dir=args['cache_dir'],
-        #                                              device_map=self.args['device_map'])
+        #self.llama_model = LlamaModel._from_config(llamaconfig, torch_dtype=torch.float16,)#.to(device)
+        self.llama_model = LlamaModel.from_pretrained(self.args['base_model'], load_in_8bit=False, torch_dtype=torch.float16,
+                                                      local_files_only=True, cache_dir=args['cache_dir'],
+                                                      device_map=self.args['device_map'])
         self.llama_model = prepare_model_for_int8_training(self.llama_model)
         self.llama_model = get_peft_model(self.llama_model, peft_config)
         self.llama_model.print_trainable_parameters()
