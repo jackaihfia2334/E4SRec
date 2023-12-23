@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import transformers
-from transformers import LlamaModel, LlamaForCausalLM, LlamaTokenizer
+from transformers import LlamaModel, LlamaForCausalLM, LlamaTokenizer,LlamaConfig
 from transformers.modeling_outputs import SequenceClassifierOutputWithPast
 
 from peft import (
@@ -18,6 +18,7 @@ class LLM4Rec(nn.Module):
         super(LLM4Rec, self).__init__()
         self.args = args
         self.input_dim, self.output_dim = args['input_dim'], args['output_dim']
+        #device = torch.device(f"cuda:{args.device_index}" if torch.cuda.is_available() else "cpu") if args['device_index'] else torch.device("cuda:0")
 
         print(f'Initializing language decoder ...')
         # add the lora module
@@ -30,16 +31,19 @@ class LLM4Rec(nn.Module):
             bias='none',
         )
 
-        self.llama_model = LlamaModel.from_pretrained(self.args['base_model'], load_in_8bit=True, torch_dtype=torch.float16,
-                                                      local_files_only=True, cache_dir=args['cache_dir'],
-                                                      device_map=self.args['device_map'])
+        llamaconfig = LlamaConfig(vocab_size=32000, hidden_size=4096//4, intermediate_size=11008//4, num_hidden_Layers=32//4, num_attention_heads=32//4, max_position_embeddings=2048//4)
+        self.llama_model = LlamaModel._from_config(llamaconfig, torch_dtype=torch.float16,)#.to(device)
+        #self.llama_model = LlamaModel.from_pretrained(self.args['base_model'], load_in_8bit=True, torch_dtype=torch.float16,
+        #                                              local_files_only=True, cache_dir=args['cache_dir'],
+        #                                              device_map=self.args['device_map'])
         self.llama_model = prepare_model_for_int8_training(self.llama_model)
         self.llama_model = get_peft_model(self.llama_model, peft_config)
         self.llama_model.print_trainable_parameters()
         self.llama_model.config.use_cache = False
 
-        self.llama_tokenizer = LlamaTokenizer.from_pretrained(self.args['base_model'], use_fast=False, local_files_only=True, cache_dir=args['cache_dir'])
-        self.llama_tokenizer.pad_token = 0
+        self.llama_tokenizer = LlamaTokenizer.from_pretrained('D:/data/llm/model/huggyllama', use_fast=False, local_files_only=True, cache_dir=args['cache_dir'])
+        #self.llama_tokenizer = LlamaTokenizer.from_pretrained(self.args['base_model'], use_fast=False, local_files_only=True, cache_dir=args['cache_dir'])
+        self.llama_tokenizer.pad_token = "0"
         self.llama_tokenizer.padding_side = "right"
         self.instruct_ids, self.instruct_mask = self.llama_tokenizer(self.args['instruction_text'][0],
                                                                      truncation=True, padding=False,
@@ -95,13 +99,3 @@ class LLM4Rec(nn.Module):
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
         )
-
-
-
-
-
-
-
-
-
-
